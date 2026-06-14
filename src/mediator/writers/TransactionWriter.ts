@@ -3,10 +3,12 @@ import * as fs from "fs/promises";
 
 export class TransactionWriter {
   private lines: string[] = ["timestamp,amount,currency"];
+
   write(record: TransactionRecord) {
-    // TODO
+    this.lines.push(`${record.timestamp},${record.amount},${record.currency}`);
   }
+
   async finalize() {
-    // TODO
+    await fs.writeFile("src/output/transactions.csv", this.lines.join("\n"));
   }
 }

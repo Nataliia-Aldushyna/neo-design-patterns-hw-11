@@ -15,13 +15,48 @@ const handlerMap = {
   system_error: buildSystemErrorChain,
 };
 
-async function main() {
-  // зчитування даних
-  // створення mediator
-  // цикл по records:
-  //   - вибір handler-а через handlerMap
-  //   - try/catch: handle + mediator.onSuccess/onRejected
-  // finalize
+async function main(): Promise<void> {
+  try {
+    const raw = await fs.readFile("src/data/records.json", "utf-8");
+    const records = JSON.parse(raw) as DataRecord[];
+
+    console.log(`[INFO] Завантажено записів: ${records.length}`);
+
+    const mediator = new ProcessingMediator(
+      new AccessLogWriter(),
+      new TransactionWriter(),
+      new ErrorLogWriter(),
+      new RejectedWriter()
+    );
+
+    for (const record of records) {
+      const builder = handlerMap[record.type];
+
+      if (!builder) {
+        mediator.onRejected(record, "Unknown type");
+        continue;
+      }
+
+      const handler = builder();
+
+      try {
+        const processed = handler.handle(record);
+        mediator.onSuccess(processed);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Unknown processing error";
+
+        mediator.onRejected(record, message);
+      }
+    }
+
+    await mediator.finalize();
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Unknown application error";
+
+    console.error(`[ERROR] ${message}`);
+  }
 }
 
 main();

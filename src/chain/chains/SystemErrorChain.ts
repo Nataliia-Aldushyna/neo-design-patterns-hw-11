@@ -4,5 +4,9 @@ import { MessageTrimmer } from "../handlers/MessageTrimmer";
 import { AbstractHandler } from "../AbstractHandler";
 
 export function buildSystemErrorChain(): AbstractHandler {
-  // TODO
+  const ts = new TimestampParser();
+  const level = new LevelValidator();
+  const trim = new MessageTrimmer();
+  ts.setNext(level).setNext(trim);
+  return ts;
 }
